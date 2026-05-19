@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Select-Object Name)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Salvador\\\\Desktop\\\\Casos_Practicos_Acciparte_SalvadorGarciaOlmedo\" | Where-Object {$_.PSIsContainer} | ForEach-Object {$_.Name})",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Salvador\\\\Desktop\\\\Casos_Practicos_Acciparte_SalvadorGarciaOlmedo\\\\representacion_visual_interactiva_accidentes\" | ForEach-Object {$_.Name})",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Salvador\\\\Desktop\\\\Casos_Practicos_Acciparte_SalvadorGarciaOlmedo\\\\representacion_visual_interactiva_accidentes\\\\src\" -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object {$_.FullName.Replace\\(\"C:\\\\Users\\\\Salvador\\\\Desktop\\\\Casos_Practicos_Acciparte_SalvadorGarciaOlmedo\\\\representacion_visual_interactiva_accidentes\\\\\", \"\"\\)})"
+    ]
+  }
+}
