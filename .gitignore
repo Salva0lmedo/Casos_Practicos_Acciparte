@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (contienen secretos)
+.env
+.env.local
+.env.*.local
+
+# Builds
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+claude.md
+CLAUDE.md
+
+# Editor
+.vscode/
+.idea/
