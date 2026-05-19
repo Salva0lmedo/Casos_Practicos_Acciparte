@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Salvador\\\\Desktop\\\\representacion_visual_interactiva_accidentes\\\\src\\\\components\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Salvador\\\\Desktop\\\\representacion_visual_interactiva_accidentes\\\\src\\\\hooks\")",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Salvador\\\\Desktop\\\\representacion_visual_interactiva_accidentes\\\\src\\\\data\")",
+      "Bash(Write-Host \"Dirs created\")",
+      "Bash(npm run *)",
+      "Bash(npx vite *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5175/)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Stop-Process *)"
+    ]
+  }
+}
