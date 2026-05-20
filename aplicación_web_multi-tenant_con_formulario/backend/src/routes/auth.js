@@ -28,8 +28,8 @@ router.post('/register', authLimiter, async (req, res) => {
   if (!email || !password || !tenantSlug) {
     return res.status(400).json({ error: 'email, password and tenantSlug required' });
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
   }
 
   const client = await db.connect();
@@ -73,20 +73,25 @@ router.post('/login', authLimiter, async (req, res) => {
     return res.status(400).json({ error: 'email, password and tenantSlug required' });
   }
 
-  const { rows: [user] } = await db.query(
-    `SELECT u.id, u.password_hash, u.tenant_id, u.role
-     FROM users u
-     JOIN tenants t ON t.id = u.tenant_id
-     WHERE u.email = $1 AND t.slug = $2`,
-    [email, tenantSlug]
-  );
+  try {
+    const { rows: [user] } = await db.query(
+      `SELECT u.id, u.password_hash, u.tenant_id, u.role
+       FROM users u
+       JOIN tenants t ON t.id = u.tenant_id
+       WHERE u.email = $1 AND t.slug = $2`,
+      [email, tenantSlug]
+    );
 
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    res.cookie('token', signToken({ userId: user.id, tenantId: user.tenant_id, role: user.role }), COOKIE_OPTS);
+    res.json({ tenantSlug });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
-
-  res.cookie('token', signToken({ userId: user.id, tenantId: user.tenant_id, role: user.role }), COOKIE_OPTS);
-  res.json({ tenantSlug });
 });
 
 router.post('/logout', (req, res) => {

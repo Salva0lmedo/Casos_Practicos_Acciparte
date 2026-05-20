@@ -7,6 +7,11 @@ async function request(path, options = {}) {
     headers: { 'Content-Type': 'application/json', ...extraHeaders },
     ...rest,
   });
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    localStorage.removeItem('tenantSlug');
+    window.location.href = '/login';
+    return;
+  }
   const body = await res.json();
   if (!res.ok) throw new Error(body.error || 'Request failed');
   return body;

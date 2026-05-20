@@ -2,12 +2,23 @@ const router = require('express').Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 
+const VALID_TIPOS = [
+  'Urgencia médica',
+  'Accidente de tráfico',
+  'Intervención quirúrgica',
+  'Consulta ambulatoria',
+  'Traslado hospitalario',
+];
+
 router.use(auth);
 
 router.post('/', async (req, res) => {
   const { nombre, apellidos, lugar, tipo_intervencion } = req.body;
   if (!nombre || !apellidos || !lugar || !tipo_intervencion) {
     return res.status(400).json({ error: 'All fields required' });
+  }
+  if (!VALID_TIPOS.includes(tipo_intervencion)) {
+    return res.status(400).json({ error: 'Invalid tipo_intervencion' });
   }
 
   const { userId, tenantId } = req.user;

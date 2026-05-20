@@ -22,7 +22,7 @@ CREATE TABLE submissions (
   nombre VARCHAR(100) NOT NULL,
   apellidos VARCHAR(100) NOT NULL,
   lugar VARCHAR(100) NOT NULL,
-  tipo_intervencion VARCHAR(100) NOT NULL,
+  tipo_intervencion VARCHAR(100) NOT NULL CHECK (tipo_intervencion IN ('Urgencia médica','Accidente de tráfico','Intervención quirúrgica','Consulta ambulatoria','Traslado hospitalario')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
