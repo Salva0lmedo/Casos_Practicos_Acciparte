@@ -385,23 +385,54 @@ En el panel lateral izquierdo (**Elementos**) hay tres categorías:
 | **Obstáculos** | Cono, Barrera, Árbol |
 | **Entorno** | Semáforo, Señal STOP, Paso Cebra |
 
-Haz clic en cualquier elemento para añadirlo al centro del canvas.
+Haz clic en cualquier elemento para añadirlo al canvas (centrado en el área visible).
 
 ### Manipular elementos en el canvas
 
 - **Seleccionar:** clic sobre el elemento.
 - **Mover:** arrastra el elemento seleccionado.
 - **Rotar / escalar:** usa los manejadores del transformer que aparece al seleccionar.
-- **Eliminar:** selecciona el elemento y pulsa la tecla `Supr` o el botón de borrar.
+- **Eliminar:** selecciona el elemento y pulsa `Supr` o `Backspace`.
+- **Deshacer / Rehacer:** `Ctrl+Z` / `Ctrl+Y` (o `Ctrl+Shift+Z`). Historial de hasta 50 estados.
+
+### Cuadrícula y snap
+
+El botón **Snap: ON/OFF** en el panel izquierdo activa el ajuste a cuadrícula (paso de 40 px). Al moverlos con snap activo, los elementos se alinean automáticamente a la rejilla visible en el canvas.
+
+### Editar propiedades del elemento
+
+Al seleccionar un elemento, el panel derecho muestra sus propiedades:
+
+- **Etiqueta:** campo de texto editable. El texto aparece bajo el elemento en el canvas.
+- **Color:** selector de color para cambiar el color del elemento.
+
+### Metadatos del accidente
+
+En el panel derecho hay una sección **Metadatos del accidente** (desplegable) con:
+
+| Campo | Tipo |
+|-------|------|
+| Lugar | Texto libre |
+| Fecha | Selector de fecha |
+| Meteorología | Despejado · Lluvia · Niebla · Nieve · Viento fuerte |
+| Descripción | Área de texto |
+
+Estos metadatos se incluyen en el JSON exportado y se restauran al importar.
 
 ### Exportar e importar la escena
 
-El panel derecho (**JSON**) muestra en todo momento el estado actual de la escena en formato JSON:
+El panel derecho (**JSON**) muestra en todo momento el estado actual de la escena:
 
 ```json
 {
-  "id": "scene-1716123456789",
-  "timestamp": "2025-05-19T10:30:00.000Z",
+  "id": "uuid-estable-de-la-escena",
+  "timestamp": "2025-05-20T10:30:00.000Z",
+  "metadata": {
+    "location": "Calle Mayor 12, Madrid",
+    "date": "2025-05-20",
+    "weather": "Lluvia",
+    "description": "Colisión en intersección."
+  },
   "elements": [
     {
       "id": "uuid-...",
@@ -419,7 +450,7 @@ El panel derecho (**JSON**) muestra en todo momento el estado actual de la escen
 ```
 
 - **Exportar:** copia el JSON del panel o usa el botón de descarga.
-- **Importar:** pega un JSON válido en el panel y confirma para restaurar una escena guardada.
+- **Importar:** pega un JSON válido en el panel y confirma para restaurar escena y metadatos.
 - **Limpiar:** botón **Limpiar escena** para eliminar todos los elementos.
 
 ---
@@ -449,19 +480,26 @@ representacion_visual_interactiva_accidentes/
 
 #### Organización del código
 
-Separación clara por responsabilidad: el hook `useScene` centraliza toda la lógica de estado; los componentes solo renderizan. `elementTypes.js` actúa como fuente de verdad del catálogo de elementos, evitando strings literales dispersos.
+Separación clara por responsabilidad: el hook `useScene` centraliza toda la lógica de estado; los componentes solo renderizan. `elementTypes.js` actúa como fuente de verdad del catálogo de elementos — `getCategoryForType` se deriva dinámicamente de `ELEMENT_CATEGORIES` con un único mapa `TYPE_TO_CATEGORY`, eliminando Sets duplicados.
 
 #### Interactividad del canvas
 
-- `react-konva` gestiona el stage y los transformer handles sin manipulación directa del DOM.
-- Cada elemento es un componente `SceneElement` independiente con sus propios manejadores de eventos.
-- La selección, el movimiento y la transformación se propagan al estado central vía callbacks.
+- `react-konva` gestiona el stage, la cuadrícula y los transformer handles sin manipulación directa del DOM.
+- El canvas es responsive: usa `ResizeObserver` para adaptar el stage al tamaño real del contenedor.
+- Snap a cuadrícula configurable (40 px): las coordenadas se redondean en `handleMove` antes de llegar al estado.
+- Atajos de teclado: `Supr`/`Backspace` elimina, `Ctrl+Z` deshace, `Ctrl+Y`/`Ctrl+Shift+Z` rehace. Los campos de texto quedan excluidos para no interferir con la edición.
+
+#### Gestión de estado e historial
+
+`useScene` usa `useReducer` con patrón past/present/future (máx. 50 entradas). Cada acción mutante (ADD, UPDATE, REMOVE, CLEAR, LOAD) empuja el estado anterior al historial. UNDO/REDO invierten el movimiento entre stacks. La selección activa no forma parte del historial para no contaminar el deshacer.
 
 #### Exportación / importación de datos
 
-- El JSON exportado incluye posición, rotación, escala y propiedades de cada elemento, suficiente para reproducir la escena exacta.
-- La importación valida la presencia de `elements` antes de cargar para evitar errores silenciosos.
+- El JSON exportado incluye posición, rotación, escala, propiedades de cada elemento y los metadatos del accidente (lugar, fecha, meteorología, descripción).
+- El `id` de escena es un UUID estable generado al inicio, no basado en `Date.now()`, lo que evita cambios en cada render.
+- La importación valida cada elemento (`id`, `type`, `x`, `y` como tipos correctos) antes de cargar, descartando entradas inválidas sin errores silenciosos.
+- Al importar también se restauran los metadatos si están presentes en el JSON.
 
 #### Claridad general de la solución
 
-Stack mínimo: React + react-konva + Vite, sin librerías de estado adicionales. El estado de la escena vive en un único hook con API clara (`addElement`, `updateElement`, `removeElement`, `clearScene`, `loadScene`, `getSceneJSON`).
+Stack mínimo: React + react-konva + Vite, sin librerías de estado adicionales. El estado de la escena vive en un único hook con API clara (`addElement`, `updateElement`, `removeElement`, `clearScene`, `loadScene`, `undo`, `redo`, `updateMetadata`, `getSceneJSON`).
