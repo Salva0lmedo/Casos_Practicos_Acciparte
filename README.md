@@ -158,7 +158,7 @@ http://localhost:5173
 ### Registrarse por primera vez
 
 1. En el campo **Organización**, escribe el nombre de tu empresa (ej: `mi-empresa`). Este es el identificador del tenant.
-2. Introduce un **email** y una **contraseña** (mínimo 6 caracteres).
+2. Introduce un **email** y una **contraseña** (mínimo 8 caracteres).
 3. Pulsa **Registrarse**.
 
 > Puedes crear varias organizaciones distintas. Los datos de cada una están completamente separados.
@@ -239,9 +239,10 @@ submissions
 | Método | Ruta | Autenticación | Descripción |
 |--------|------|---------------|-------------|
 | POST | `/api/auth/register` | No | Crea tenant (si no existe) + usuario |
-| POST | `/api/auth/login` | No | Devuelve JWT |
-| POST | `/api/submissions` | JWT (Bearer) | Guarda un formulario |
-| GET  | `/api/submissions` | JWT (Bearer) | Lista submissions: admin → todos del tenant · user → solo los suyos |
+| POST | `/api/auth/login` | No | Autentica y devuelve cookie JWT `httpOnly` |
+| POST | `/api/auth/logout` | No | Borra la cookie JWT |
+| POST | `/api/submissions` | Cookie JWT | Guarda un formulario |
+| GET  | `/api/submissions` | Cookie JWT | Lista submissions: admin → todos del tenant · user → solo los suyos |
 
 **Ejemplo — Login:**
 ```json
@@ -251,13 +252,13 @@ POST /api/auth/login
   "password": "micontraseña",
   "tenantSlug": "mi-empresa"
 }
-→ { "token": "eyJhbGciOiJIUzI1NiJ9..." }
+→ Set-Cookie: token=<jwt>; HttpOnly; SameSite=Strict
+→ { "tenantSlug": "mi-empresa" }
 ```
 
-**Ejemplo — Enviar formulario:**
+**Ejemplo — Enviar formulario (cookie se envía automáticamente):**
 ```json
 POST /api/submissions
-Authorization: Bearer <token>
 {
   "nombre": "Juan",
   "apellidos": "García López",
@@ -324,7 +325,7 @@ frontend/
 #### Seguridad de la autenticación y autorización
 
 - Contraseñas hasheadas con `bcryptjs` (cost factor 10). Nunca se almacena texto plano.
-- Longitud mínima de contraseña (≥6 caracteres) validada en backend — no depende del frontend.
+- Longitud mínima de contraseña (≥8 caracteres) validada en backend — no depende del frontend.
 - JWT con expiración de 24h firmado con secreto de entorno. Payload: `{ userId, tenantId, role }`.
 - `tenantId` en las queries siempre del token verificado, nunca aceptado del cliente.
 - Autorización por rol: `role=admin` accede a todos los submissions del tenant; `role=user` solo a los propios.
