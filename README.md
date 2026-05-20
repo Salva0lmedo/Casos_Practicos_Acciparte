@@ -173,6 +173,17 @@ http://localhost:5173
 - **Paso 1:** Nombre, apellidos y lugar del incidente → pulsa **Siguiente**.
 - **Paso 2:** Selecciona el tipo de intervención haciendo clic en una de las tarjetas → pulsa **Enviar formulario**.
 
+### Promover usuario a admin
+
+Por defecto todos los usuarios se crean con `role='user'`. Para dar permisos de admin (acceso a todos los submissions del tenant), ejecuta en PowerShell (cambia `TU_PASSWORD` y el email):
+
+```powershell
+$env:PGPASSWORD = "TU_PASSWORD"
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -d multitenant -c "UPDATE users SET role='admin' WHERE email='admin@empresa.com';"
+```
+
+El usuario verá todos los submissions del tenant en el GET `/api/submissions` tras su próximo login.
+
 ---
 
 ## Verificar registros guardados
@@ -330,6 +341,15 @@ frontend/
 - `tenantId` en las queries siempre del token verificado, nunca aceptado del cliente.
 - Autorización por rol: `role=admin` accede a todos los submissions del tenant; `role=user` solo a los propios.
 - Validación de campos en backend independiente del frontend (el frontend puede ser manipulado).
+
+#### Decisiones técnicas clave
+
+- **JWT en cookie `httpOnly`, no `localStorage`**: JS del cliente no puede leer la cookie → inmune a XSS. `localStorage` es accesible desde cualquier script inyectado en la página.
+- **Sin ORM (sin Sequelize/Prisma)**: queries SQL directas son legibles, auditables y sin comportamiento implícito. Para este tamaño de proyecto, un ORM añade complejidad sin beneficio real.
+- **`tenantId` del JWT verificado, nunca del body**: si aceptáramos `tenantId` del cliente, cualquier usuario podría cambiar su tenant en la petición. El token está firmado con `JWT_SECRET` — el cliente no puede modificarlo.
+- **bcrypt cost factor 10**: por debajo es demasiado rápido (vulnerable a fuerza bruta); por encima el login se vuelve lento para el usuario. 10 es el balance estándar en aplicaciones web.
+- **`pg.Pool`, no una conexión por query**: abrir una conexión TCP + autenticación PostgreSQL por cada request sería un cuello de botella bajo carga. El pool reutiliza conexiones ya abiertas.
+- **`UNIQUE(tenant_id, email)`, no `UNIQUE(email)` global**: el mismo email puede existir en dos organizaciones distintas. Un unique global impediría que `admin@empresa.com` se registre en dos tenants diferentes.
 
 #### Claridad general de la solución
 

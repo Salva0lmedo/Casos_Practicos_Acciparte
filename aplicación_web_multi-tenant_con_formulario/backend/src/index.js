@@ -13,8 +13,13 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/submissions', submissionRoutes);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server on port ${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Server on port ${PORT}`));
+}
+
+module.exports = app;
