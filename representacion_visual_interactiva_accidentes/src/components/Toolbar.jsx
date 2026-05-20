@@ -1,10 +1,21 @@
 import { ELEMENT_CATEGORIES } from '../data/elementTypes'
 
-export const Toolbar = ({ onAddElement }) => (
+export const Toolbar = ({ onAddElement, snapToGrid, onSnapToggle }) => (
   <aside className="toolbar">
     <div className="toolbar-header">
       <h2>Elementos</h2>
       <p>Clic para añadir a la escena</p>
+    </div>
+
+    <div className="toolbar-tools">
+      <button
+        className={`tool-btn${snapToGrid ? ' active' : ''}`}
+        onClick={onSnapToggle}
+        title="Ajustar a cuadrícula (snap)"
+      >
+        <span className="tool-icon">⊞</span>
+        <span className="tool-label">{snapToGrid ? 'Snap: ON' : 'Snap: OFF'}</span>
+      </button>
     </div>
 
     {ELEMENT_CATEGORIES.map((cat) => (

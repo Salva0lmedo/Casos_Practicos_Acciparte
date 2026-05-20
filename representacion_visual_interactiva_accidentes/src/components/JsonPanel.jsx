@@ -1,14 +1,20 @@
 import { useState, useMemo, useRef } from 'react'
 
+const WEATHER_OPTIONS = ['Despejado', 'Lluvia', 'Niebla', 'Nieve', 'Viento fuerte']
+
 export const JsonPanel = ({
   sceneJSON,
   selectedElement,
   onColorChange,
+  onLabelChange,
   onClear,
   onExportPNG,
   onImportJSON,
+  metadata,
+  onMetadataChange,
 }) => {
   const [copied, setCopied] = useState(false)
+  const [metaOpen, setMetaOpen] = useState(false)
   const fileInputRef = useRef(null)
   const jsonString = useMemo(() => JSON.stringify(sceneJSON, null, 2), [sceneJSON])
 
@@ -34,8 +40,7 @@ export const JsonPanel = ({
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
-        const json = JSON.parse(ev.target.result)
-        onImportJSON(json)
+        onImportJSON(JSON.parse(ev.target.result))
       } catch {
         alert('JSON inválido')
       }
@@ -46,13 +51,17 @@ export const JsonPanel = ({
 
   return (
     <aside className="json-panel">
-      {/* Properties panel — visible only when element selected */}
+      {/* Element properties — visible when selected */}
       {selectedElement && (
         <div className="props-panel">
           <div className="props-title">Propiedades</div>
           <div className="prop-row">
-            <span className="prop-key">Tipo</span>
-            <span className="prop-val">{selectedElement.properties.label}</span>
+            <span className="prop-key">Etiqueta</span>
+            <input
+              className="prop-input"
+              value={selectedElement.properties.label}
+              onChange={(e) => onLabelChange(e.target.value)}
+            />
           </div>
           <div className="prop-row">
             <span className="prop-key">Color</span>
@@ -78,6 +87,61 @@ export const JsonPanel = ({
           </div>
         </div>
       )}
+
+      {/* Accident metadata */}
+      <div className="meta-section">
+        <button className="meta-toggle" onClick={() => setMetaOpen((o) => !o)}>
+          <span>📋 Metadatos del accidente</span>
+          <span>{metaOpen ? '▲' : '▼'}</span>
+        </button>
+        {metaOpen && (
+          <div className="meta-fields">
+            <label className="meta-label">
+              Lugar
+              <input
+                className="meta-input"
+                value={metadata.location}
+                onChange={(e) => onMetadataChange({ location: e.target.value })}
+                placeholder="Dirección o km..."
+              />
+            </label>
+            <label className="meta-label">
+              Fecha
+              <input
+                type="date"
+                className="meta-input"
+                value={metadata.date}
+                onChange={(e) => onMetadataChange({ date: e.target.value })}
+              />
+            </label>
+            <label className="meta-label">
+              Meteorología
+              <select
+                className="meta-input"
+                value={metadata.weather}
+                onChange={(e) => onMetadataChange({ weather: e.target.value })}
+              >
+                <option value="">—</option>
+                {WEATHER_OPTIONS.map((w) => (
+                  <option key={w} value={w}>
+                    {w}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="meta-label">
+              Descripción
+              <textarea
+                className="meta-input meta-textarea"
+                value={metadata.description}
+                onChange={(e) => onMetadataChange({ description: e.target.value })}
+                placeholder="Descripción del accidente..."
+                rows={3}
+              />
+            </label>
+          </div>
+        )}
+      </div>
 
       <div className="json-header">
         <h2>Datos de la escena</h2>
@@ -122,9 +186,9 @@ export const JsonPanel = ({
 
       <div className="shortcuts-hint">
         <p>
-          <kbd>Supr</kbd> elimina el elemento seleccionado
+          <kbd>Supr</kbd> elimina · <kbd>Ctrl+Z</kbd> deshacer · <kbd>Ctrl+Y</kbd> rehacer
         </p>
-        <p>Arrastra para mover · Esquinas para rotar</p>
+        <p>Arrastra para mover · Esquinas para rotar/escalar</p>
       </div>
     </aside>
   )

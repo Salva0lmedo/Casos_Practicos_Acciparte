@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Toolbar } from './components/Toolbar'
 import { Canvas } from './components/Canvas'
 import { JsonPanel } from './components/JsonPanel'
 import { useScene } from './hooks/useScene'
+
+const SNAP_SIZE = 40
 
 export default function App() {
   const {
@@ -14,37 +16,67 @@ export default function App() {
     removeElement,
     clearScene,
     loadScene,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    metadata,
+    updateMetadata,
     getSceneJSON,
   } = useScene()
 
   const stageRef = useRef(null)
   const [zoom, setZoom] = useState(1)
+  const [snapToGrid, setSnapToGrid] = useState(false)
 
   const zoomIn = useCallback(() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2))), [])
   const zoomOut = useCallback(() => setZoom(z => Math.max(0.25, +(z - 0.25).toFixed(2))), [])
   const zoomReset = useCallback(() => setZoom(1), [])
 
   const selectedElement = elements.find((el) => el.id === selectedId) ?? null
+  const sceneJSON = useMemo(() => getSceneJSON(), [getSceneJSON])
 
   const handleAddElement = useCallback(
-    (type) => {
-      const cx = (window.innerWidth - 240 - 320) / 2
-      const cy = (window.innerHeight - 56) / 2
+    (type, canvasSize) => {
+      // canvasSize passed from Canvas via Toolbar — fallback to estimate if not available
+      const w = canvasSize?.width ?? window.innerWidth - 240 - 320
+      const h = canvasSize?.height ?? window.innerHeight - 56
       const jitter = () => (Math.random() - 0.5) * 100
-      addElement(type, cx + jitter(), cy + jitter())
+      // Divide by zoom: convert viewport center to world coordinates
+      addElement(type, (w / 2 + jitter()) / zoom, (h / 2 + jitter()) / zoom)
     },
-    [addElement]
+    [addElement, zoom]
+  )
+
+  const handleMove = useCallback(
+    (id, x, y) => {
+      const sx = snapToGrid ? Math.round(x / SNAP_SIZE) * SNAP_SIZE : x
+      const sy = snapToGrid ? Math.round(y / SNAP_SIZE) * SNAP_SIZE : y
+      updateElement(id, { x: sx, y: sy })
+    },
+    [snapToGrid, updateElement]
   )
 
   const handleKeyDown = useCallback(
     (e) => {
+      const tag = e.target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
-        const tag = e.target?.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA') return
         removeElement(selectedId)
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault()
+        undo()
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+        e.preventDefault()
+        redo()
       }
     },
-    [selectedId, removeElement]
+    [selectedId, removeElement, undo, redo]
   )
 
   useEffect(() => {
@@ -55,9 +87,15 @@ export default function App() {
   const handleColorChange = useCallback(
     (color) => {
       if (!selectedElement) return
-      updateElement(selectedElement.id, {
-        properties: { ...selectedElement.properties, color },
-      })
+      updateElement(selectedElement.id, { properties: { ...selectedElement.properties, color } })
+    },
+    [selectedElement, updateElement]
+  )
+
+  const handleLabelChange = useCallback(
+    (label) => {
+      if (!selectedElement) return
+      updateElement(selectedElement.id, { properties: { ...selectedElement.properties, label } })
     },
     [selectedElement, updateElement]
   )
@@ -72,13 +110,6 @@ export default function App() {
     a.click()
   }, [])
 
-  const handleImportJSON = useCallback(
-    (json) => {
-      loadScene(json)
-    },
-    [loadScene]
-  )
-
   return (
     <div className="app">
       <header className="topbar">
@@ -86,11 +117,33 @@ export default function App() {
           <span className="brand-icon">⚠️</span>
           <h1>Reconstrucción Visual de Accidentes</h1>
         </div>
+        <div className="topbar-actions">
+          <button
+            className="btn-undo"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Deshacer (Ctrl+Z)"
+          >
+            ↩ Deshacer
+          </button>
+          <button
+            className="btn-undo"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Rehacer (Ctrl+Y)"
+          >
+            ↪ Rehacer
+          </button>
+        </div>
         <span className="topbar-badge">React · Konva</span>
       </header>
 
       <main className="workspace">
-        <Toolbar onAddElement={handleAddElement} />
+        <Toolbar
+          onAddElement={handleAddElement}
+          snapToGrid={snapToGrid}
+          onSnapToggle={() => setSnapToGrid((s) => !s)}
+        />
 
         <div className="canvas-area">
           <Canvas
@@ -98,8 +151,10 @@ export default function App() {
             elements={elements}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            onMove={(id, x, y) => updateElement(id, { x, y })}
-            onTransform={(id, rotation, scaleX, scaleY) => updateElement(id, { rotation, scaleX, scaleY })}
+            onMove={handleMove}
+            onTransform={(id, rotation, scaleX, scaleY) =>
+              updateElement(id, { rotation, scaleX, scaleY })
+            }
             zoom={zoom}
           />
           {elements.length === 0 && (
@@ -109,19 +164,28 @@ export default function App() {
             </div>
           )}
           <div className="zoom-controls">
-            <button className="zoom-btn" onClick={zoomOut} title="Reducir" disabled={zoom <= 0.25}>−</button>
-            <button className="zoom-label" onClick={zoomReset} title="Restablecer zoom">{Math.round(zoom * 100)}%</button>
-            <button className="zoom-btn" onClick={zoomIn} title="Ampliar" disabled={zoom >= 3}>+</button>
+            <button className="zoom-btn" onClick={zoomOut} title="Reducir" disabled={zoom <= 0.25}>
+              −
+            </button>
+            <button className="zoom-label" onClick={zoomReset} title="Restablecer zoom">
+              {Math.round(zoom * 100)}%
+            </button>
+            <button className="zoom-btn" onClick={zoomIn} title="Ampliar" disabled={zoom >= 3}>
+              +
+            </button>
           </div>
         </div>
 
         <JsonPanel
-          sceneJSON={getSceneJSON()}
+          sceneJSON={sceneJSON}
           selectedElement={selectedElement}
           onColorChange={handleColorChange}
+          onLabelChange={handleLabelChange}
           onClear={clearScene}
           onExportPNG={handleExportPNG}
-          onImportJSON={handleImportJSON}
+          onImportJSON={loadScene}
+          metadata={metadata}
+          onMetadataChange={updateMetadata}
         />
       </main>
     </div>

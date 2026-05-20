@@ -40,11 +40,9 @@ export const getElementDef = (type) => {
   return null
 }
 
-const VEHICLE_TYPES = new Set(['car', 'truck', 'motorcycle', 'van'])
-const OBSTACLE_TYPES = new Set(['cone', 'barrier', 'tree'])
+// Derived from ELEMENT_CATEGORIES — single source of truth, no duplicate Sets
+const TYPE_TO_CATEGORY = Object.fromEntries(
+  ELEMENT_CATEGORIES.flatMap((cat) => cat.elements.map((el) => [el.type, cat.id]))
+)
 
-export const getCategoryForType = (type) => {
-  if (VEHICLE_TYPES.has(type)) return 'vehicle'
-  if (OBSTACLE_TYPES.has(type)) return 'obstacle'
-  return 'environment'
-}
+export const getCategoryForType = (type) => TYPE_TO_CATEGORY[type] ?? 'environment'
