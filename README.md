@@ -1,7 +1,7 @@
 # Casos Prácticos Acciparte — Salvador García Olmedo
 
 Repositorio con dos casos prácticos independientes desarrollados para Acciparte.
-
+ 
 ---
 
 ## Índice
