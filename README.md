@@ -309,21 +309,28 @@ Separación en dos capas independientes con responsabilidad única por archivo:
 ```
 backend/
   src/
+    index.js              ← punto de entrada, Express app + rutas
     config/db.js          ← conexión PostgreSQL (Pool)
     middleware/auth.js    ← verificación JWT, único punto de entrada protegido
     routes/auth.js        ← POST /register, POST /login
     routes/submissions.js ← POST /, GET / (protegidas por middleware)
+  __tests__/
+    health.test.js              ← test de endpoint /api/health
+    middleware.auth.test.js     ← tests del middleware JWT
   migrations/001_init.sql ← esquema SQL versionado
-  .env                    ← secretos fuera del código
+  .env.example            ← plantilla de configuración (.env se crea localmente)
 
 frontend/
   src/
+    main.jsx              ← punto de entrada React
+    index.css             ← estilos globales
     api.js                ← todas las llamadas HTTP centralizadas
+    App.jsx               ← routing y protección de rutas privadas
     pages/Login.jsx       ← autenticación con validación Zod
     pages/FormPage.jsx    ← stepper + lógica de envío
-    components/StepOne    ← campos de texto con React Hook Form
-    components/StepTwo    ← radio cards de selección
-    App.jsx               ← routing y protección de rutas privadas
+    components/FormField.jsx ← campo de formulario reutilizable
+    components/StepOne.jsx   ← campos de texto con React Hook Form
+    components/StepTwo.jsx   ← radio cards de selección
 ```
 
 #### Diseño de la base de datos
@@ -481,16 +488,18 @@ El panel derecho (**JSON**) muestra en todo momento el estado actual de la escen
 ```
 representacion_visual_interactiva_accidentes/
   src/
-    App.jsx                  ← layout principal (toolbar + canvas + panel JSON)
+    main.jsx               ← punto de entrada React
+    index.css              ← estilos globales
+    App.jsx                ← layout principal (toolbar + canvas + panel JSON)
     components/
-      Canvas.jsx             ← stage Konva con todos los elementos renderizados
-      SceneElement.jsx       ← representación individual de cada elemento en canvas
-      Toolbar.jsx            ← panel lateral de categorías y botones de elementos
-      JsonPanel.jsx          ← vista y edición del JSON de la escena
+      Canvas.jsx           ← stage Konva con todos los elementos renderizados
+      SceneElement.jsx     ← representación individual de cada elemento en canvas
+      Toolbar.jsx          ← panel lateral de categorías y botones de elementos
+      JsonPanel.jsx        ← vista y edición del JSON de la escena
     data/
-      elementTypes.js        ← catálogo de tipos de elementos con iconos y colores
+      elementTypes.js      ← catálogo de tipos de elementos con iconos y colores
     hooks/
-      useScene.js            ← estado de la escena: add / update / remove / clear / loadScene
+      useScene.js          ← estado de la escena: add / update / remove / clear / loadScene
   index.html
   vite.config.js
 ```
